@@ -25,7 +25,7 @@
             position: absolute; top: -2px; right: -2px; background: red; color: white;
             font-size: 10px; width: 16px; height: 16px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center; font-weight: bold;
-            display: none; /* 초기값 숨김 */
+            display: none; 
         }
 
         /* 📂 알림 창 스타일 */
@@ -61,6 +61,10 @@
             text-decoration: none; font-size: 18px; font-weight: bold; text-align: center; transition: 0.3s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
+        .menu-btn:active { background-color: #f9f9f9; transform: scale(0.98); }
+        
+        /* [추가] 논란의 탑 버튼 전용 스타일 (필요시 색상 차별화 가능) */
+        .tower-btn { border-color: #ffd700; color: #b8860b; }
     </style>
 </head>
 <body>
@@ -69,8 +73,7 @@
             <button class="noti-btn" onclick="toggleNoti(event)">
                 🔔 <span class="noti-badge" id="notiCount">0</span>
             </button>
-            <div class="noti-dropdown" id="notiDropdown">
-                </div>
+            <div class="noti-dropdown" id="notiDropdown"></div>
         </div>
 
         <div class="live-status" id="liveUserBadge">● 실시간 접속 배심원: 120명</div>
@@ -88,11 +91,23 @@
             <a href="list.html" class="menu-btn">📜 사건 기록 열람실</a>
             <a href="retry.html" class="menu-btn">🔨 재심 판결단</a>
             <a href="mypage.html" class="menu-btn">👤 마이페이지</a>
+            <a href="tower.html" class="menu-btn tower-btn">🏰 논란의 탑 (실시간)</a>
         </div>
     </div>
 
     <script>
-        // 1. 알림 토글 기능
+        function initSecurity() {
+            if (!localStorage.getItem('currentUser')) {
+                location.replace('index.html');
+                return;
+            }
+            history.pushState(null, null, location.href);
+            window.onpopstate = function() {
+                history.pushState(null, null, location.href);
+                alert("로그아웃하시려면 마이페이지를 이용해주세요.");
+            };
+        }
+
         function toggleNoti(event) {
             event.stopPropagation();
             const dropdown = document.getElementById('notiDropdown');
@@ -100,7 +115,6 @@
             dropdown.style.display = isVisible ? 'none' : 'block';
             
             if (!isVisible) {
-                // 알림창 열 때 확인한 것으로 간주하고 배지 숨김
                 document.getElementById('notiCount').style.display = 'none';
             }
         }
@@ -111,29 +125,26 @@
             }
         }
 
-        // 2. 실시간 알림 생성 및 체크 로직 (추가됨)
         function checkNewNotifications() {
             const cases = JSON.parse(localStorage.getItem('myCases') || '[]');
-            let notifications = JSON.parse(localStorage.getItem('userNoti') || []);
+            let notifications = JSON.parse(localStorage.getItem('userNoti') || '[]');
             
             let hasNew = false;
+            const now = Date.now();
 
             cases.forEach(item => {
-                // 판결이 종료(isClosed)되었는데 아직 알림(notified)을 안 준 경우
-                if (item.isClosed && !item.notified) {
+                const isClosed = (item.endTime - now) <= 0;
+                if (isClosed && !item.notified) {
                     let msg = "";
-                    // 내가 쓴 글인 경우
-                    if (item.isMine) {
-                        msg = `⚖️ 판결이 종료되었습니다: '${item.title}'의 최종 결과를 확인하세요.`;
-                    } 
-                    // 내가 투표한 글인 경우
-                    else if (item.voted) {
+                    if (item.authorName === JSON.parse(localStorage.getItem('currentUser')).nickname) {
+                        msg = `⚖️ 판결이 종료되었습니다: '${item.title}'의 결과를 확인하세요.`;
+                    } else if (item.voted) {
                         msg = `🗳️ 투표 결과 알림: 참여하신 '${item.title}' 판결이 종료되었습니다.`;
                     }
 
                     if (msg) {
                         notifications.unshift({ title: "판결 종료", content: msg, time: "방금 전" });
-                        item.notified = true; // 중복 알림 방지 플래그
+                        item.notified = true;
                         hasNew = true;
                     }
                 }
@@ -150,11 +161,11 @@
             const listContainer = document.getElementById('notiDropdown');
             const badge = document.getElementById('notiCount');
 
-            if (notifications.length === 0) {
+            if (!notifications || notifications.length === 0) {
                 listContainer.innerHTML = '<div class="noti-item" style="text-align:center; color:#999;">새로운 알림이 없습니다.</div>';
                 badge.style.display = 'none';
             } else {
-                badge.innerText = notifications.length;
+                badge.innerText = notifications.length > 9 ? '9+' : notifications.length;
                 badge.style.display = 'flex';
                 listContainer.innerHTML = notifications.map(n => `
                     <div class="noti-item">
@@ -166,16 +177,14 @@
             }
         }
 
-        // 3. 기존 데이터 로드 로직
         function updateLiveUsers() {
             const count = Math.floor(Math.random() * (350 - 150 + 1)) + 150;
             document.getElementById('liveUserBadge').innerText = `● 실시간 접속 배심원: ${count}명`;
         }
         setInterval(updateLiveUsers, 4000);
-        updateLiveUsers();
 
         function loadMainUserInfo() {
-            const userData = JSON.parse(localStorage.getItem('userData')) || { coin: 1000 };
+            const userData = JSON.parse(localStorage.getItem('userData')) || { coin: 0 };
             document.getElementById('mainCoin').innerText = userData.coin.toLocaleString();
             
             const lp = parseInt(localStorage.getItem('userPoints') || '0');
@@ -188,11 +197,14 @@
             else if (lp >= 1000) rankName = "사법연수생";
             badgeEl.innerText = rankName;
 
-            // 유저 정보 로드 후 알림 체크 실행
             checkNewNotifications();
         }
 
-        window.onload = loadMainUserInfo;
+        window.onload = function() {
+            initSecurity();
+            updateLiveUsers();
+            loadMainUserInfo();
+        };
     </script>
 </body>
 </html>

@@ -17,7 +17,9 @@
             background-color: #ffffff;
         }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .back-btn { font-size: 24px; color: #333; text-decoration: none; font-weight: bold; width: 30px; }
+        
+        /* [수정] 뒤로가기 버튼: 클릭 시 메인으로 이동하도록 개선 */
+        .back-btn { font-size: 24px; color: #333; text-decoration: none; font-weight: bold; width: 30px; cursor: pointer; border: none; background: none; text-align: left; padding: 0; }
         .back-btn::before { content: '‹'; }
         
         .archive-title { 
@@ -46,14 +48,12 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
             cursor: pointer; 
             position: relative;
-            /* 가로 배치를 위한 flex 추가 */
             display: flex;
             align-items: flex-start;
         }
 
-        /* 아이디 영역 스타일 */
         .author-area {
-            width: 65px; /* 아이디 너비 고정 */
+            width: 65px; 
             flex-shrink: 0;
             font-size: 13px;
             font-weight: bold;
@@ -65,7 +65,6 @@
             white-space: nowrap;
         }
 
-        /* 구분선 스타일 */
         .divider {
             width: 1px;
             height: 40px;
@@ -74,10 +73,9 @@
             flex-shrink: 0;
         }
 
-        /* 본문 영역 스타일 */
         .content-area {
             flex-grow: 1;
-            min-width: 0; /* 텍스트 생략 기능을 위해 필요 */
+            min-width: 0; 
         }
         
         .case-title { font-size: 15px; font-weight: bold; margin-bottom: 4px; color: #222222; padding-right: 50px; }
@@ -108,7 +106,7 @@
 <body>
     <div class="mobile-container">
         <div class="header">
-            <a href="index.html" class="back-btn"></a>
+            <button onclick="location.href='main.html'" class="back-btn"></button>
             <div class="archive-title">📜 사건 아카이브</div>
             <button onclick="handleRefresh(this)" class="refresh-btn">🔄</button>
         </div>
@@ -117,6 +115,11 @@
     </div>
 
     <script>
+        // [방어 코드] 혹시라도 비정상적으로 들어온 경우 메인으로 보냄
+        if (!localStorage.getItem('currentUser')) {
+            location.replace('main.html');
+        }
+
         function handleRefresh(btn) {
             btn.classList.add('rotating');
             renderList();
@@ -137,7 +140,10 @@
             listContainer.innerHTML = '';
             const now = Date.now();
 
-            savedCases.forEach(item => {
+            // 최신 글이 위로 오게 정렬 추가
+            const displayCases = [...savedCases].sort((a, b) => b.id - a.id);
+
+            displayCases.forEach(item => {
                 const diff = item.endTime - now;
                 let timeText = "";
                 let statusClass = "status-ing";
@@ -152,7 +158,6 @@
                     else timeText = `${m}분`;
                 }
 
-                // 작성자 닉네임 (데이터가 없으면 익명 표시)
                 const authorName = item.authorName || "익명";
 
                 const html = `

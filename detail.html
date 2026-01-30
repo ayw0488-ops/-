@@ -12,7 +12,8 @@
             background-color: #ffffff;
         }
         .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .back-btn { font-size: 28px; color: #333; text-decoration: none; font-weight: bold; }
+        /* 뒤로가기 버튼 영역 확보 */
+        .back-btn { font-size: 28px; color: #333; text-decoration: none; font-weight: bold; padding: 5px 10px; cursor: pointer; }
         .coin-status { background: #f8f9fa; padding: 5px 12px; border-radius: 15px; border: 1px solid #ffd700; font-size: 13px; color: #333; }
         .case-card { background: #ffffff; border-radius: 20px; padding: 25px; margin-bottom: 20px; border: 1px solid #eeeeee; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .case-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #b8860b; }
@@ -27,7 +28,6 @@
         .gauge-my { background: #ff4d4d; transition: width 0.5s ease; }
         .gauge-your { background: #4d94ff; transition: width 0.5s ease; }
         
-        /* 추가된 공유 버튼 스타일 */
         .share-button-container { margin-top: 15px; text-align: center; }
         .btn-share-result { 
             width: 100%; padding: 15px; border-radius: 12px; border: none; 
@@ -53,7 +53,7 @@
 <body>
     <div class="mobile-container">
         <div class="header">
-            <a href="list.html" class="back-btn"></a>
+            <a href="javascript:void(0)" onclick="location.href='list.html'" class="back-btn">&lt;</a>
             <div class="coin-status">🟡 <span id="topCoin">0</span></div>
         </div>
 
@@ -91,7 +91,8 @@
             
             if (!currentCase) {
                 alert("존재하지 않는 사건입니다.");
-                location.href = 'list.html';
+                // [수정] 여기서도 기록을 덮어씌우며 리스트로 보냄
+                location.replace('list.html');
                 return;
             }
 
@@ -162,7 +163,6 @@
             const myPercent = total === 0 ? 0 : Math.round((myVotes / total) * 100);
             const yourPercent = total === 0 ? 0 : Math.round((yourVotes / total) * 100);
 
-            // 결과창 렌더링 + 마감 시 공유 버튼 추가
             let resultHtml = `
                 <div class="result-container">
                     <h4 style="text-align: center; margin: 0 0 15px 0; color: #222;">⚖️ 판결 결과</h4>
@@ -180,7 +180,6 @@
                 </div>
             `;
 
-            // 마감된 사건일 경우 '결과 공유하기' 버튼 추가 노출
             if (isExpired) {
                 resultHtml += `
                     <div class="share-button-container">

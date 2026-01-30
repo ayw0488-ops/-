@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논쟁의 탑 [심판 테스트] - 내탓네탓</title>
+    <style>
+        body { margin: 0; background-color: #1a1a1a; font-family: 'Pretendard', sans-serif; color: #ffffff; }
+        .mobile-container {
+            width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto;
+            display: flex; flex-direction: column; padding: 40px 20px; box-sizing: border-box;
+            background: linear-gradient(180deg, #1a1a1a 0%, #2d3436 100%);
+        }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .back-btn { font-size: 28px; color: #fff; text-decoration: none; cursor: pointer; }
+        .tower-status { text-align: center; margin-bottom: 10px; }
+        .floor-num { font-size: 32px; font-weight: 900; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+        
+        .survival-badge { background: #00b894; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+        .eliminated-badge { background: #d63031 !important; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+
+        .debate-card {
+            background: rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 30px 20px;
+            text-align: center; border: 1px solid rgba(255,255,255,0.2); margin-bottom: 20px;
+            min-height: 120px; display: flex; flex-direction: column; justify-content: center;
+        }
+        .timer { font-size: 16px; color: #ffd700; font-weight: bold; margin-bottom: 10px; }
+        .question { font-size: 18px; font-weight: bold; line-height: 1.6; word-break: keep-all; }
+
+        .result-box { margin-top: 15px; display: none; }
+        .gauge-bar {
+            height: 25px; width: 100%; background: #444; border-radius: 12px;
+            overflow: hidden; display: flex; position: relative; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .gauge-my { height: 100%; background: #0984e3; transition: width 0.5s ease-in-out; }
+        .gauge-your { height: 100%; background: #e84393; transition: width 0.5s ease-in-out; }
+        .gauge-text {
+            position: absolute; width: 100%; display: flex; justify-content: space-between;
+            padding: 0 10px; box-sizing: border-box; line-height: 25px; font-size: 12px; font-weight: bold;
+        }
+
+        .vote-group { display: flex; flex-direction: column; gap: 15px; width: 100%; }
+        .vote-btn {
+            padding: 20px; border-radius: 15px; border: none; font-size: 18px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; color: white;
+        }
+        .btn-my { background: #0984e3; border: 2px solid transparent; }
+        .btn-your { background: #e84393; border: 2px solid transparent; }
+        .vote-btn.selected { border-color: #ffffff; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .vote-btn:disabled { background: #444; cursor: not-allowed; opacity: 0.5; }
+        
+        .revive-btn {
+            background: #ffd700; color: #000; padding: 15px; border-radius: 15px;
+            font-weight: bold; border: none; margin-top: 20px; cursor: pointer; width: 100%;
+            z-index: 100; position: relative;
+        }
+        .reward-info {
+            margin-top: auto; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 15px;
+            font-size: 13px; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <div class="back-btn" onclick="location.href='main.html'">&lt;</div>
+            <div id="userCoinDisplay" style="color: #ffd700; font-weight: bold;">🟡 0</div>
+        </div>
+
+        <div class="tower-status">
+            <div id="currentFloor" class="floor-num">1층</div>
+            <span id="statusBadge" class="survival-badge">생존 중</span>
+        </div>
+
+        <div class="debate-card">
+            <div class="timer" id="roundTimer">남은 시간 15초</div>
+            <div class="question" id="debateQuestion">질문을 불러오는 중...</div>
+            
+            <div id="resultBox" class="result-box">
+                <div class="gauge-bar">
+                    <div id="barMy" class="gauge-my"></div>
+                    <div id="barYour" class="gauge-your"></div>
+                    <div class="gauge-text">
+                        <span id="textMy">내 탓 0%</span>
+                        <span id="textYour">네 탓 0%</span>
+                    </div>
+                </div>
+                <div id="winTag" style="color:#ffd700; font-size:12px; margin-top:8px; font-weight:bold;">판결 중...</div>
+            </div>
+        </div>
+
+        <div class="vote-group" id="voteGroup">
+            <button id="btnMy" class="vote-btn btn-my" onclick="castVote('my')">내 탓이다</button>
+            <button id="btnYour" class="vote-btn btn-your" onclick="castVote('your')">네 탓이다</button>
+        </div>
+
+        <button id="reviveBtn" class="revive-btn" style="display: none;" onclick="revive()">
+            🟡 100 코인으로 부활하기
+        </button>
+
+        <div class="reward-info">
+            현재 층 통과 보상: <span id="rewardCoin" style="color: #ffd700;">10개</span><br>
+            <span style="font-size: 11px; color: #888;">다수결에 속해야 다음 층으로 올라갑니다.</span>
+        </div>
+    </div>
+
+    <script>
+        const rewards = [10, 30, 50, 80, 120, 150, 200, 250, 300, 500];
+        const questions = [
+            "친구랑 약속했는데 깜빡하고 늦잠 잤다. 누구 탓?",
+            "공동 프로젝트 망쳤는데 내가 맡은 부분은 완벽했다. 누구 탓?",
+            "연인과 싸웠는데 원인 제공은 내가 했지만 상대가 먼저 화냈다. 누구 탓?",
+            "길 가다 부딪혔는데 상대방이 핸드폰 보며 걸어오고 있었다. 누구 탓?",
+            "내가 추천한 맛집에 갔는데 음식이 너무 맛없어서 분위기가 싸해졌다. 누구 탓?",
+            "술자리에서 내가 쏜다고 했는데 지갑을 두고 왔다. 누구 탓?",
+            "빌려준 돈 갚으라고 했는데 상대가 오히려 적반하장이다. 누구 탓?",
+            "중요한 시험 날 알람이 안 울려서 지각했다. 누구 탓?",
+            "조별과제 무임승차자가 있는데 조장이 관리를 못 했다. 누구 탓?",
+            "내탓네탓 앱이 너무 재밌어서 밤을 새버렸다. 누구 탓?"
+        ];
+
+        let gameState = JSON.parse(localStorage.getItem('towerState')) || {
+            currentFloor: 1, isEliminated: false, lastVotedRound: -1, selectedSide: null
+        };
+
+        let testResult = { my: 50, your: 50 };
+
+        function updateGame() {
+            const now = new Date();
+            const sec = now.getSeconds();
+            const currentRound = Math.floor(now.getTime() / 20000); 
+            const phaseSec = sec % 20; 
+
+            if (gameState.lastCheckedRound !== currentRound) {
+                processRoundTransition(currentRound);
+                gameState.lastCheckedRound = currentRound;
+                saveState();
+            }
+
+            const displayRound = Math.floor(now.getMinutes() * 3 + sec / 20) % 10;
+            const isVotePhase = phaseSec < 15; 
+
+            document.getElementById('currentFloor').innerText = `${gameState.currentFloor}층`;
+            document.getElementById('debateQuestion').innerText = questions[displayRound];
+            document.getElementById('rewardCoin').innerText = `${rewards[gameState.currentFloor-1]}개`;
+
+            if (isVotePhase) {
+                document.getElementById('roundTimer').innerText = `투표 종료까지 ${15 - phaseSec}초`;
+                document.getElementById('resultBox').style.display = 'none';
+                if(phaseSec === 14) {
+                    const myRate = Math.floor(Math.random() * 70) + 15;
+                    testResult = { my: myRate, your: 100 - myRate };
+                }
+                refreshButtons(true, currentRound);
+            } else {
+                document.getElementById('roundTimer').innerText = `결과 확인 중... (${20 - phaseSec}초)`;
+                showGaugeResult();
+                refreshButtons(false, currentRound);
+            }
+
+            refreshBadge();
+            updateCoinDisplay();
+        }
+
+        function showGaugeResult() {
+            document.getElementById('resultBox').style.display = 'block';
+            document.getElementById('barMy').style.width = testResult.my + '%';
+            document.getElementById('barYour').style.width = testResult.your + '%';
+            document.getElementById('textMy').innerText = `내 탓 ${testResult.my}%`;
+            document.getElementById('textYour').innerText = `네 탓 ${testResult.your}%`;
+            const winText = testResult.my > testResult.your ? "[내 탓] 다수결 승리!" : "[네 탓] 다수결 승리!";
+            document.getElementById('winTag').innerText = winText;
+        }
+
+        function processRoundTransition(currentRound) {
+            if (!gameState.isEliminated) {
+                if (gameState.lastVotedRound < currentRound - 1) {
+                    gameState.isEliminated = true;
+                } else {
+                    addCoin(rewards[gameState.currentFloor - 1]);
+                    gameState.currentFloor = (gameState.currentFloor >= 10) ? 1 : gameState.currentFloor + 1;
+                }
+                gameState.selectedSide = null;
+            }
+        }
+
+        function castVote(side) {
+            const currentRound = Math.floor(new Date().getTime() / 20000);
+            if (gameState.isEliminated) return;
+            gameState.lastVotedRound = currentRound;
+            gameState.selectedSide = side;
+            saveState();
+            refreshButtons(true, currentRound);
+        }
+
+        function refreshButtons(isVotePhase, currentRound) {
+            const btnMy = document.getElementById('btnMy');
+            const btnYour = document.getElementById('btnYour');
+            const alreadyVoted = gameState.lastVotedRound === currentRound;
+
+            btnMy.disabled = gameState.isEliminated || !isVotePhase || alreadyVoted;
+            btnYour.disabled = gameState.isEliminated || !isVotePhase || alreadyVoted;
+            btnMy.classList.toggle('selected', gameState.selectedSide === 'my');
+            btnYour.classList.toggle('selected', gameState.selectedSide === 'your');
+        }
+
+        function refreshBadge() {
+            const badge = document.getElementById('statusBadge');
+            const reviveBtn = document.getElementById('reviveBtn');
+            if (gameState.isEliminated) {
+                badge.innerText = "탈락 (관전 중)";
+                badge.className = "eliminated-badge";
+                reviveBtn.style.display = "block";
+            } else {
+                badge.innerText = "생존 중";
+                badge.className = "survival-badge";
+                reviveBtn.style.display = "none";
+            }
+        }
+
+        function revive() {
+            let userData = JSON.parse(localStorage.getItem('userData')) || {coin: 0};
+            if (userData.coin < 100) { alert("코인이 부족합니다."); return; }
+            userData.coin -= 100;
+            gameState.isEliminated = false;
+            
+            // 핵심: 부활 즉시 현재 라운드 투표를 가능하게 초기화
+            gameState.lastVotedRound = -1; 
+            
+            localStorage.setItem('userData', JSON.stringify(userData));
+            saveState();
+
+            // 부활 즉시 버튼 상태 갱신
+            const currentRound = Math.floor(new Date().getTime() / 20000);
+            refreshButtons(true, currentRound);
+            
+            alert("부활 성공! 즉시 투표가 가능합니다.");
+        }
+
+        function addCoin(amount) {
+            let userData = JSON.parse(localStorage.getItem('userData')) || {coin: 0};
+            userData.coin = (userData.coin || 0) + amount;
+            localStorage.setItem('userData', JSON.stringify(userData));
+        }
+
+        function updateCoinDisplay() {
+            const userData = JSON.parse(localStorage.getItem('userData')) || {coin: 0};
+            document.getElementById('userCoinDisplay').innerText = `🟡 ${userData.coin.toLocaleString()}`;
+        }
+
+        function saveState() { localStorage.setItem('towerState', JSON.stringify(gameState)); }
+
+        setInterval(updateGame, 1000);
+        updateGame();
+    </script>
+</body>
+</html>
