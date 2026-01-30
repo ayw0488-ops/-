@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메인 - 내탓네탓</title>
+    <style>
+        body { margin: 0; background-color: #f5f5f5; font-family: 'Pretendard', sans-serif; color: #333; }
+        
+        .mobile-container {
+            width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto;
+            background-color: #ffffff; position: relative;
+            display: flex; flex-direction: column; align-items: center; padding-top: 60px; box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+
+        /* 🔔 알림 아이콘 스타일 */
+        .notification-header {
+            position: absolute; top: 20px; right: 20px; z-index: 100;
+        }
+        .noti-btn {
+            background: none; border: none; font-size: 24px; cursor: pointer; position: relative;
+        }
+        .noti-badge {
+            position: absolute; top: -2px; right: -2px; background: red; color: white;
+            font-size: 10px; width: 16px; height: 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            display: none; /* 초기값 숨김 */
+        }
+
+        /* 📂 알림 창 스타일 */
+        .noti-dropdown {
+            display: none; position: absolute; top: 55px; right: 20px; width: 280px;
+            background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid #eee; overflow-y: auto; max-height: 400px; z-index: 101;
+        }
+        .noti-item {
+            padding: 15px; border-bottom: 1px solid #f9f9f9; font-size: 13px; line-height: 1.4;
+        }
+        .noti-item:last-child { border-bottom: none; }
+        .noti-item .time { color: #999; font-size: 11px; margin-top: 5px; }
+        .noti-title { font-weight: bold; margin-bottom: 3px; display: block; }
+
+        /* 기존 실시간 접속자 및 상태 바 */
+        .live-status {
+            background: rgba(0, 200, 0, 0.1); border: 1px solid #00aa00; color: #00aa00;
+            padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 10px;
+        }
+        .user-status-bar {
+            background: #f9f9f9; border: 1px solid rgba(255, 215, 0, 0.5);
+            padding: 10px 20px; border-radius: 12px; display: flex; gap: 15px;
+            font-size: 13px; margin-bottom: 30px; align-items: center; color: #333;
+        }
+        .rank-text { color: #9d4edd; font-weight: bold; }
+        .coin-text { color: #b8860b; font-weight: bold; }
+
+        .logo { font-size: 40px; font-weight: 900; margin-bottom: 40px; text-align: center; line-height: 1.2; color: #333; }
+        .menu-group { width: 85%; display: flex; flex-direction: column; gap: 15px; }
+        .menu-btn {
+            background: #ffffff; border: 1px solid #ddd; padding: 20px; border-radius: 15px; color: #333;
+            text-decoration: none; font-size: 18px; font-weight: bold; text-align: center; transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="notification-header">
+            <button class="noti-btn" onclick="toggleNoti(event)">
+                🔔 <span class="noti-badge" id="notiCount">0</span>
+            </button>
+            <div class="noti-dropdown" id="notiDropdown">
+                </div>
+        </div>
+
+        <div class="live-status" id="liveUserBadge">● 실시간 접속 배심원: 120명</div>
+
+        <div class="user-status-bar">
+            <div class="status-item"><span style="color: #666;">등급:</span> <span id="mainRank" class="rank-text">로딩 중...</span></div>
+            <div style="width: 1px; height: 12px; background: #ddd;"></div>
+            <div class="status-item"><span style="color: #666;">보유:</span> <span class="coin-text">🟡 <span id="mainCoin">0</span></span></div>
+        </div>
+
+        <div class="logo">⚖️<br>내탓네탓</div>
+
+        <div class="menu-group">
+            <a href="write.html" class="menu-btn">⚖️ 사건 접수하기</a>
+            <a href="list.html" class="menu-btn">📜 사건 기록 열람실</a>
+            <a href="retry.html" class="menu-btn">🔨 재심 판결단</a>
+            <a href="mypage.html" class="menu-btn">👤 마이페이지</a>
+        </div>
+    </div>
+
+    <script>
+        // 1. 알림 토글 기능
+        function toggleNoti(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('notiDropdown');
+            const isVisible = dropdown.style.display === 'block';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                // 알림창 열 때 확인한 것으로 간주하고 배지 숨김
+                document.getElementById('notiCount').style.display = 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.notification-header')) {
+                document.getElementById('notiDropdown').style.display = 'none';
+            }
+        }
+
+        // 2. 실시간 알림 생성 및 체크 로직 (추가됨)
+        function checkNewNotifications() {
+            const cases = JSON.parse(localStorage.getItem('myCases') || '[]');
+            let notifications = JSON.parse(localStorage.getItem('userNoti') || []);
+            
+            let hasNew = false;
+
+            cases.forEach(item => {
+                // 판결이 종료(isClosed)되었는데 아직 알림(notified)을 안 준 경우
+                if (item.isClosed && !item.notified) {
+                    let msg = "";
+                    // 내가 쓴 글인 경우
+                    if (item.isMine) {
+                        msg = `⚖️ 판결이 종료되었습니다: '${item.title}'의 최종 결과를 확인하세요.`;
+                    } 
+                    // 내가 투표한 글인 경우
+                    else if (item.voted) {
+                        msg = `🗳️ 투표 결과 알림: 참여하신 '${item.title}' 판결이 종료되었습니다.`;
+                    }
+
+                    if (msg) {
+                        notifications.unshift({ title: "판결 종료", content: msg, time: "방금 전" });
+                        item.notified = true; // 중복 알림 방지 플래그
+                        hasNew = true;
+                    }
+                }
+            });
+
+            if (hasNew) {
+                localStorage.setItem('userNoti', JSON.stringify(notifications));
+                localStorage.setItem('myCases', JSON.stringify(cases));
+            }
+            renderNotiList(notifications);
+        }
+
+        function renderNotiList(notifications) {
+            const listContainer = document.getElementById('notiDropdown');
+            const badge = document.getElementById('notiCount');
+
+            if (notifications.length === 0) {
+                listContainer.innerHTML = '<div class="noti-item" style="text-align:center; color:#999;">새로운 알림이 없습니다.</div>';
+                badge.style.display = 'none';
+            } else {
+                badge.innerText = notifications.length;
+                badge.style.display = 'flex';
+                listContainer.innerHTML = notifications.map(n => `
+                    <div class="noti-item">
+                        <span class="noti-title">${n.title}</span>
+                        ${n.content}
+                        <div class="time">${n.time}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 3. 기존 데이터 로드 로직
+        function updateLiveUsers() {
+            const count = Math.floor(Math.random() * (350 - 150 + 1)) + 150;
+            document.getElementById('liveUserBadge').innerText = `● 실시간 접속 배심원: ${count}명`;
+        }
+        setInterval(updateLiveUsers, 4000);
+        updateLiveUsers();
+
+        function loadMainUserInfo() {
+            const userData = JSON.parse(localStorage.getItem('userData')) || { coin: 1000 };
+            document.getElementById('mainCoin').innerText = userData.coin.toLocaleString();
+            
+            const lp = parseInt(localStorage.getItem('userPoints') || '0');
+            const badgeEl = document.getElementById('mainRank');
+            
+            let rankName = "신입 배심원";
+            if (lp >= 50000) rankName = "명예 대법관";
+            else if (lp >= 15000) rankName = "부장판사";
+            else if (lp >= 5000) rankName = "평판사";
+            else if (lp >= 1000) rankName = "사법연수생";
+            badgeEl.innerText = rankName;
+
+            // 유저 정보 로드 후 알림 체크 실행
+            checkNewNotifications();
+        }
+
+        window.onload = loadMainUserInfo;
+    </script>
+</body>
+</html>

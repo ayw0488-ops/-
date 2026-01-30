@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로딩 중</title>
+    <style>
+        /* 화면 정중앙에 로딩바를 위치시키는 설정 */
+        body { 
+            margin: 0; height: 100vh; 
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; 
+            font-family: sans-serif; background-color: #ffffff;
+        }
+        /* 빙글빙글 도는 애니메이션 */
+        .loader { 
+            border: 5px solid #f3f3f3; border-top: 5px solid #FF4D4D; 
+            border-radius: 50%; width: 50px; height: 50px; 
+            animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .text { font-size: 20px; font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <div class="text">내탓네탓 로딩 중...</div>
+
+    <script>
+        // 2.5초 뒤에 자동으로 main.html 페이지로 이동합니다.
+        setTimeout(() => {
+            window.location.href = 'main.html';
+        }, 2500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사건 목록 - 내탓네탓</title>
+    <style>
+        body { 
+            margin: 0; 
+            background-color: #ffffff; 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
+            color: #333333; 
+        }
+        .mobile-container {
+            width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto;
+            display: flex; flex-direction: column; padding: 50px 15px; box-sizing: border-box;
+            background-color: #ffffff;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { font-size: 24px; color: #333; text-decoration: none; font-weight: bold; width: 30px; }
+        .back-btn::before { content: '‹'; }
+        
+        .archive-title { 
+            font-size: 18px; 
+            font-weight: 600; 
+            color: #444; 
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-btn {
+            background: none; border: none; font-size: 18px; cursor: pointer;
+            width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+            padding: 0; transition: transform 0.4s ease;
+        }
+        .refresh-btn.rotating { transform: rotate(360deg); }
+
+        .case-card {
+            background: #ffffff; 
+            border-radius: 12px; 
+            padding: 12px 15px; 
+            margin-bottom: 10px; 
+            border: 1px solid #f0f0f0; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+            cursor: pointer; 
+            position: relative;
+            /* 가로 배치를 위한 flex 추가 */
+            display: flex;
+            align-items: flex-start;
+        }
+
+        /* 아이디 영역 스타일 */
+        .author-area {
+            width: 65px; /* 아이디 너비 고정 */
+            flex-shrink: 0;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            text-align: center;
+            padding-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 구분선 스타일 */
+        .divider {
+            width: 1px;
+            height: 40px;
+            background-color: #eee;
+            margin: 0 12px;
+            flex-shrink: 0;
+        }
+
+        /* 본문 영역 스타일 */
+        .content-area {
+            flex-grow: 1;
+            min-width: 0; /* 텍스트 생략 기능을 위해 필요 */
+        }
+        
+        .case-title { font-size: 15px; font-weight: bold; margin-bottom: 4px; color: #222222; padding-right: 50px; }
+        .case-preview { 
+            font-size: 12.5px; color: #777777; margin-bottom: 8px; 
+            display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; 
+        }
+        
+        .time-tag {
+            position: absolute; top: 12px; right: 12px;
+            font-size: 10px; font-weight: bold; padding: 3px 7px; border-radius: 4px;
+            color: #ffffff !important;
+        }
+        .status-ing { background: #ff4d4d; }
+        .status-end { background: #aaaaaa; }
+
+        .case-footer { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 11px; 
+            color: #9d4edd; 
+            font-weight: 600; 
+            border-top: 1px solid #fafafa;
+            padding-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <div class="header">
+            <a href="index.html" class="back-btn"></a>
+            <div class="archive-title">📜 사건 아카이브</div>
+            <button onclick="handleRefresh(this)" class="refresh-btn">🔄</button>
+        </div>
+
+        <div id="caseList"></div>
+    </div>
+
+    <script>
+        function handleRefresh(btn) {
+            btn.classList.add('rotating');
+            renderList();
+            setTimeout(() => {
+                btn.classList.remove('rotating');
+            }, 400);
+        }
+
+        function renderList() {
+            const listContainer = document.getElementById('caseList');
+            const savedCases = JSON.parse(localStorage.getItem('myCases') || '[]');
+
+            if (savedCases.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; margin-top:100px; color:#aaa; font-size:14px;">기록된 사건이 없습니다.</p>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            const now = Date.now();
+
+            savedCases.forEach(item => {
+                const diff = item.endTime - now;
+                let timeText = "";
+                let statusClass = "status-ing";
+
+                if (diff <= 0) {
+                    timeText = "판결 마감";
+                    statusClass = "status-end";
+                } else {
+                    const m = Math.floor(diff / 60000);
+                    if (m < 1) timeText = "곧 마감";
+                    else if (m >= 60) timeText = "1시간+";
+                    else timeText = `${m}분`;
+                }
+
+                // 작성자 닉네임 (데이터가 없으면 익명 표시)
+                const authorName = item.authorName || "익명";
+
+                const html = `
+                    <div class="case-card" onclick="location.href='detail.html?id=${item.id}'">
+                        <div class="author-area">${authorName}</div>
+                        <div class="divider"></div>
+                        <div class="content-area">
+                            <div class="time-tag ${statusClass}">${timeText}</div>
+                            <div class="case-title">${item.title}</div>
+                            <div class="case-preview">${item.content}</div>
+                            <div class="case-footer">
+                                <span>❤️ ${item.likes || 0}</span>
+                                <span>⚖️ 배심원 참여 중</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        setInterval(renderList, 60000);
+        renderList();
+    </script>
+</body>
+</html>
