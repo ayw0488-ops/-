@@ -3,34 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로딩 중</title>
+    <title>로그인 - 내탓네탓</title>
     <style>
-        /* 화면 정중앙에 로딩바를 위치시키는 설정 */
-        body { 
-            margin: 0; height: 100vh; 
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center; 
-            font-family: sans-serif; background-color: #ffffff;
+        /* 1. 기본 스타일 설정 */
+        body { margin: 0; background-color: #ffffff; font-family: 'Pretendard', sans-serif; color: #333333; }
+        .mobile-container {
+            width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; box-sizing: border-box;
         }
-        /* 빙글빙글 도는 애니메이션 */
-        .loader { 
-            border: 5px solid #f3f3f3; border-top: 5px solid #FF4D4D; 
-            border-radius: 50%; width: 50px; height: 50px; 
-            animation: spin 1s linear infinite; margin-bottom: 20px;
+
+        /* 2. 로고 및 타이틀 수정 */
+        .logo-area { text-align: center; margin-bottom: 50px; }
+        
+        /* 저울 이모티콘 중앙 배치 */
+        .logo-icon { font-size: 50px; margin-bottom: 10px; display: block; }
+        
+        /* 타이틀 색상 검정(#000)으로 통일 */
+        .logo-title { color: #000000; margin-bottom: 5px; line-height: 1.1; }
+        
+        /* 내탓네탓 (두껍게) */
+        .title-bold { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; }
+        
+        /* : 이게 내 잘못이야? (얇게 & 크기 조정) */
+        /* 하단 15px보다 크고 기존보다 작은 20px 설정 */
+        .title-light { font-weight: 200; font-size: 20px; display: block; margin-top: 2px; }
+
+        .logo-sub { font-size: 15px; color: #888; margin-top: 15px; }
+
+        /* 3. 소셜 로그인 버튼 */
+        .login-group { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        .login-btn {
+            width: 100%; height: 55px; border-radius: 12px; border: none;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .text { font-size: 20px; font-weight: bold; color: #333; }
+        
+        .btn-kakao { background-color: #FEE500; color: #3c1e1e; }
+        .btn-google { background-color: #ffffff; color: #757575; border: 1px solid #ddd; }
+
+        .login-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+        /* 안내 문구 강조 스타일 */
+        .info-text { margin-top: 30px; font-size: 12px; color: #999; text-align: center; line-height: 1.6; }
+        .highlight { color: white; background-color: #333; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
-    <div class="loader"></div>
-    <div class="text">내탓네탓 로딩 중...</div>
+    <div class="mobile-container">
+        <div class="logo-area">
+            <span class="logo-icon">⚖️</span>
+            <div class="logo-title">
+                <span class="title-bold">내탓네탓</span>
+                <span class="title-light">: 이게 내 잘못이야?</span>
+            </div>
+            <div class="logo-sub">억울한 마음, 시원한 판결</div>
+        </div>
+
+        <div class="login-group">
+            <button class="login-btn btn-kakao" onclick="mockLogin('kakao')">
+                카카오로 시작하기
+            </button>
+            <button class="login-btn btn-google" onclick="mockLogin('google')">
+                구글로 시작하기
+            </button>
+        </div>
+
+        <p class="info-text">
+            로그인 시 이용약관 및 개인정보 처리방침에 동의하게 되며,<br>
+            서비스 분석을 위해 <span class="highlight">나이와 성별</span> 정보를 수집합니다.
+        </p>
+    </div>
 
     <script>
-        // 2.5초 뒤에 자동으로 main.html 페이지로 이동합니다.
-        setTimeout(() => {
-            window.location.href = 'main.html';
-        }, 2500);
+        function mockLogin(platform) {
+            const mockSocialId = platform + "_user_12345";
+            const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+            
+            if (allUsers[mockSocialId]) {
+                alert("반가워요! 다시 오셨군요.");
+                localStorage.setItem('currentUser', JSON.stringify(allUsers[mockSocialId]));
+                location.href = 'list.html';
+            } else {
+                alert("신규 가입을 환영합니다! 추가 정보를 입력해주세요.");
+                sessionStorage.setItem('tempSocialId', mockSocialId);
+                location.href = 'onboarding.html';
+            }
+        }
     </script>
 </body>
 </html>
