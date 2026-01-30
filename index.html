@@ -5,46 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>로그인 - 내탓네탓</title>
     <style>
-        /* 1. 기본 스타일 설정 */
+        /* 기본 스타일 유지 */
         body { margin: 0; background-color: #ffffff; font-family: 'Pretendard', sans-serif; color: #333333; }
         .mobile-container {
             width: 100%; max-width: 430px; min-height: 100vh; margin: 0 auto;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 40px; box-sizing: border-box;
         }
-
-        /* 2. 로고 및 타이틀 수정 */
         .logo-area { text-align: center; margin-bottom: 50px; }
-        
-        /* 저울 이모티콘 중앙 배치 */
         .logo-icon { font-size: 50px; margin-bottom: 10px; display: block; }
-        
-        /* 타이틀 색상 검정(#000)으로 통일 */
         .logo-title { color: #000000; margin-bottom: 5px; line-height: 1.1; }
-        
-        /* 내탓네탓 (두껍게) */
         .title-bold { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; }
-        
-        /* : 이게 내 잘못이야? (얇게 & 크기 조정) */
-        /* 하단 15px보다 크고 기존보다 작은 20px 설정 */
         .title-light { font-weight: 200; font-size: 20px; display: block; margin-top: 2px; }
-
         .logo-sub { font-size: 15px; color: #888; margin-top: 15px; }
 
-        /* 3. 소셜 로그인 버튼 */
         .login-group { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .login-btn {
             width: 100%; height: 55px; border-radius: 12px; border: none;
             display: flex; align-items: center; justify-content: center;
             font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
         }
-        
         .btn-kakao { background-color: #FEE500; color: #3c1e1e; }
         .btn-google { background-color: #ffffff; color: #757575; border: 1px solid #ddd; }
-
         .login-btn:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* 안내 문구 강조 스타일 */
+        /* 요청하신 화이트 폰트 스타일 (배경이 어두운 곳에서 사용) */
         .info-text { margin-top: 30px; font-size: 12px; color: #999; text-align: center; line-height: 1.6; }
         .highlight { color: white; background-color: #333; padding: 2px 6px; border-radius: 4px; }
     </style>
@@ -61,10 +46,10 @@
         </div>
 
         <div class="login-group">
-            <button class="login-btn btn-kakao" onclick="mockLogin('kakao')">
+            <button class="login-btn btn-kakao" onclick="handleLogin('kakao')">
                 카카오로 시작하기
             </button>
-            <button class="login-btn btn-google" onclick="mockLogin('google')">
+            <button class="login-btn btn-google" onclick="handleLogin('google')">
                 구글로 시작하기
             </button>
         </div>
@@ -76,18 +61,36 @@
     </div>
 
     <script>
-        function mockLogin(platform) {
+        function handleLogin(platform) {
+            // 테스트를 위해 고정된 ID 생성 (실제 서비스에선 소셜 로그인 API가 주는 ID)
             const mockSocialId = platform + "_user_12345";
-            const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
             
+            // 1. 등록된 사용자 전체 목록 가져오기
+            let allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '{}');
+            
+            // 2. 이미 가입된 유저인지 확인
             if (allUsers[mockSocialId]) {
                 alert("반가워요! 다시 오셨군요.");
                 localStorage.setItem('currentUser', JSON.stringify(allUsers[mockSocialId]));
-                location.href = 'list.html';
+                // 기존 유저는 바로 메인화면으로!
+                location.href = 'main.html'; 
             } else {
-                alert("신규 가입을 환영합니다! 추가 정보를 입력해주세요.");
-                sessionStorage.setItem('tempSocialId', mockSocialId);
-                location.href = 'onboarding.html';
+                // 3. 신규 가입 유저 처리
+                alert("신규 가입을 환영합니다! 가입 처리를 완료합니다.");
+                
+                // 가입 정보 생성 및 저장 (이 과정이 있어야 바로 다시 안 물어봄)
+                const newUser = {
+                    id: mockSocialId,
+                    platform: platform,
+                    joinDate: new Date().toISOString()
+                };
+                
+                allUsers[mockSocialId] = newUser;
+                localStorage.setItem('registeredUsers', JSON.stringify(allUsers));
+                localStorage.setItem('currentUser', JSON.stringify(newUser));
+                
+                // 4. 가입 즉시 메인 화면으로 이동 (온보딩이 필요하면 onboarding.html로 수정)
+                location.href = 'main.html';
             }
         }
     </script>
